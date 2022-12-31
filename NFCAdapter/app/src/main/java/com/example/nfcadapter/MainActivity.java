@@ -64,9 +64,17 @@ public class MainActivity extends Activity implements NfcAdapter.CreateNdefMessa
             public void onClick(View v) {
 
                 input = message.getText().toString();
-                writeTag(tag, input);
-                //or...
-                createNFCMessage(input);
+                try {
+                    //writeTag() for MifareUltralight
+                    writeTag(tag, input);
+                    //or writeNDefMessage() for NDef NFC
+                    createNFCMessage(input);
+                }
+                catch(Exception e)
+                {
+                    Toast.makeText(getApplicationContext(), "Could not find a device to write to", Toast.LENGTH_LONG).show();
+                }
+
             }
         });
         read.setOnClickListener(new View.OnClickListener() {
