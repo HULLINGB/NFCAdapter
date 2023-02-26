@@ -3,6 +3,7 @@ package com.example.nfcadapter;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -41,6 +42,8 @@ public class MainActivity extends Activity implements NfcAdapter.CreateNdefMessa
     NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
     TextView nfc_contents;
     String input = "";
+    PendingIntent pendingIntent;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +52,9 @@ public class MainActivity extends Activity implements NfcAdapter.CreateNdefMessa
         read = (Button) findViewById(R.id.read);
         write = (Button) findViewById(R.id.write);
         message = (EditText) findViewById(R.id.message);
+        pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
+
+        //showInfo.setText("Your selected card: " + card2 + " exp " + exp2 + " cvv " + cvv2);
 
         message.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -134,36 +140,55 @@ public class MainActivity extends Activity implements NfcAdapter.CreateNdefMessa
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+    protected void onResume() {
+        super.onResume();
+        assert nfcAdapter != null;
+        //nfcAdapter.enableForegroundDispatch(context,pendingIntent,
+        //                                    intentFilterArray,
+        //                                    techListsArray)
+        nfcAdapter.enableForegroundDispatch(this,pendingIntent,null,null);
+    }
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        resolveIntent(intent);
+    }
 
-        try{
-            processIntent(intent);
-        }catch(Exception e)
-        {
-            Toast.makeText(getApplicationContext(), "Cannot do processIntents() ", Toast.LENGTH_LONG).show();
-        }
-        try{
-            readFromIntent(intent);
-        }catch(Exception e)
-        {
-            Toast.makeText(getApplicationContext(), "Cannot do readFromIntent() ", Toast.LENGTH_LONG).show();
-        }
-        try{
-            String input = Arrays.toString(getNdefMessages(intent));
-            Toast.makeText(getApplicationContext(), input,
-                    Toast.LENGTH_LONG).show();
-            //setNdefMessages(input);
-        }catch(Exception e)
-        {
-            Toast.makeText(getApplicationContext(), "Cannot do setNdefMessages() ", Toast.LENGTH_LONG).show();
-        }
-        try{
-            String input = readTag(tag);
-            Toast.makeText(getApplicationContext(), input, Toast.LENGTH_LONG).show();
-        }catch(Exception e)
-        {
-            Toast.makeText(getApplicationContext(), "Cannot do setNdefMessages() ", Toast.LENGTH_LONG).show();
-        }
+
+
+    private void resolveIntent(Intent intent) {
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+            Tag tag = (Tag) intent.getParcelableExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+            assert tag != null;
+            try{
+                //Outputs toast
+                processIntent(intent);
+            }catch(Exception e)
+            {
+                Toast.makeText(getApplicationContext(), "Cannot do processIntents() ", Toast.LENGTH_LONG).show();
+            }
+            try{
+                //Outputs toast
+                readFromIntent(intent);
+            }catch(Exception e)
+            {
+                Toast.makeText(getApplicationContext(), "Cannot do readFromIntent() ", Toast.LENGTH_LONG).show();
+            }
+            try{
+                String input = Arrays.toString(getNdefMessages(intent));
+                setNdefMessages(input);
+                //Outputs toast
+                Toast.makeText(getApplicationContext(), input,
+                        Toast.LENGTH_LONG).show();
+            }catch(Exception e)
+            {
+                Toast.makeText(getApplicationContext(), "Cannot do setNdefMessages() or getNdefMessages()", Toast.LENGTH_LONG).show();
+            }
+         }
     }
 
 
@@ -238,12 +263,6 @@ public class MainActivity extends Activity implements NfcAdapter.CreateNdefMessa
 
         Toast.makeText(getApplicationContext(), String.valueOf(msg), Toast.LENGTH_LONG).show();
     }
-    @Override
-    public void onNewIntent(Intent intent) {
-        // onResume gets called after this to handle the intent
-        super.onNewIntent(intent);
-        setIntent(intent);
-    }
 
     private void buildTagView(NdefMessage[] msgs)
     {
@@ -292,14 +311,7 @@ public class MainActivity extends Activity implements NfcAdapter.CreateNdefMessa
         }
         return null;
     }
-    public void onResume() {
-        super.onResume();
-        if (nfcAdapter != null)
-        {
-            //NdefMessage msg = new NdefMessage();
-            //nfcAdapter.enableForegroundNdefPush(this, msg);
-        }
-    }
+
     public void onPause() {
         super.onPause();
         if (nfcAdapter != null)
